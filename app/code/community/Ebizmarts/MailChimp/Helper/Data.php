@@ -1220,15 +1220,18 @@ class Ebizmarts_MailChimp_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function getLastDateOfPurchase($subscriberEmail)
     {
-        $orderCollection = $this->getOrderCollectionByCustomerEmail($subscriberEmail);
-        $lastDateOfPurchase = null;
-        foreach ($orderCollection as $order) {
-            $dateOfPurchase = $order->getCreatedAt();
-            if (!$lastDateOfPurchase || $lastDateOfPurchase < $dateOfPurchase) {
-                $lastDateOfPurchase = $dateOfPurchase;
-            }
+        $lastOrder = Mage::getResourceModel('sales/order_collection')
+            ->addFieldToFilter('customer_email', array('eq' => $subscriberEmail))
+            ->addFieldToFilter('state', array('in' => Mage::getSingleton('sales/order_config')->getVisibleOnFrontStates()))
+            ->setOrder('created_at', 'desc')
+            ->setPageSize(1)
+            ->getFirstItem();
+
+        if ($lastOrder->getId()) {
+            return Mage::getSingleton('core/date')->date('Y-m-d', strtotime($lastOrder->getCreatedAt()));
         }
-        return $lastDateOfPurchase;
+
+        return null;
     }
 
     /**
